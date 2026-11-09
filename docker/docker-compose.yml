@@ -1,0 +1,53 @@
+services:
+  mysql:
+    image: mysql:5.7
+    container_name: edu-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?set MYSQL_ROOT_PASSWORD}
+      MYSQL_ROOT_HOST: "%"
+      MYSQL_DATABASE: nev
+      TZ: Asia/Shanghai
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --default-time-zone=+08:00
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./init/00-databases.sql:/docker-entrypoint-initdb.d/00-databases.sql:ro
+      - ./init/10-nev.sql:/docker-entrypoint-initdb.d/10-nev.sql:ro
+      - ./init/20-edu-result.sql:/docker-entrypoint-initdb.d/20-edu-result.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 40
+      start_period: 30s
+
+  edu-dw:
+    build: .
+    image: edu-dw:1.0
+    container_name: edu-dw
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      MYSQL_USER: root
+      MYSQL_PASSWORD: ${MYSQL_ROOT_PASSWORD:?set MYSQL_ROOT_PASSWORD}
+      MYSQL_DB: hive_metastore
+    ports:
+      - "9000:9000"
+      - "50070:50070"
+      - "9083:9083"
+      - "10000:10000"
+    volumes:
+      - ../:/workspace
+      - ./data:/data
+
+volumes:
+  mysql-data:

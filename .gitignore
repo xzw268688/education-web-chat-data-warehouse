@@ -1,0 +1,13 @@
+.env
+docker/.env
+docker/packages/
+docker/init/10-nev.sql
+docker/data/
+data/
+submit/
+docs/screenshots/
+docs/*.docx
+*.docx
+*.log
+openspec/
+.claude/
